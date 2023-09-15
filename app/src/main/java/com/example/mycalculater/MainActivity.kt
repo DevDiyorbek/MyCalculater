@@ -1,5 +1,6 @@
 package com.example.mycalculater
 
+import android.annotation.SuppressLint
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -8,107 +9,135 @@ import android.widget.TextView
 import java.lang.ArithmeticException
 
 class MainActivity : AppCompatActivity() {
+    var lastNumeric: Boolean = false
+    var lastDot: Boolean = false
+    private var tvInput:TextView?=null
 
-    private var mainText : TextView? = null
-    private var lastDigit: Boolean = false
-    private var lastDot: Boolean = false
-
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        mainText = findViewById(R.id.tv_text)
+        tvInput = findViewById(R.id.tvInput)
     }
 
-    fun onDigit(view: View) {
-        mainText?.append((view as Button).text)
-        lastDigit = true
-        lastDot = false
+    fun onDigit(view: View){
+        tvInput?.append((view as Button).text)
+        lastNumeric = true
     }
 
     fun onClear(view: View) {
-        mainText?.text = ""
+        tvInput?.text = ""
+        lastNumeric = false
+        lastDot = false
     }
 
-    fun onDecimalPoint(view: android.view.View) {
-        if (lastDigit && !lastDot){
-            mainText?.append(".")
-            lastDigit = false
-            lastDot = true
-        }}
+    fun onDecimalPoint(view: View) {
 
-    fun onOperation(view: View){
-        mainText?.text?.let {
-            if (lastDigit && !isOperationAdded(it.toString())){
-                mainText?.append((view as Button).text)
-                lastDigit = false
-                lastDot = false
+        if (lastNumeric && !lastDot) {
+            tvInput?.append(".")
+            lastNumeric = false // Update the flag
+            lastDot = true // Update the flag
+        }
+    }
+
+
+    fun onOperator(view: View) {
+        tvInput?.text?.let {
+            if (lastNumeric && !isOperatorAdded(it.toString())) {
+                tvInput?.append((view as Button).text)
+                lastNumeric = false // Update the flag
+                lastDot = false    // Reset the DOT flag
             }
         }
     }
-    private fun isOperationAdded(value:String) :Boolean{
-        return if (value.startsWith("-")){
-            false
-        } else {value.contains("/") ||
-                value.contains("*") ||
-                value.contains("+") ||
-                value.contains("-")
-        }
-    }
-
-    fun onEqual(view: android.view.View) {
-        var prefix = ""
-        if (lastDigit){
-            var valueText = mainText?.text.toString()
-
+    fun onEqual(view: View) {
+        if (lastNumeric) {
+            var tvValue = tvInput?.text.toString()
+            var prefix = ""
             try {
-                if (valueText.startsWith("-")){
+                if (tvValue.startsWith("-")) {
                     prefix = "-"
-                    valueText = valueText.substring(1)
+                    tvValue = tvValue.substring(1)
                 }
-                if (valueText.contains("-")){
-                    val values = valueText.split("-")
-                    var first = values[0]
-                    val second = values[1]
-                    if (prefix != ""){
-                        first = prefix + first
-                    }
-                    mainText?.text = removeZero((first.toDouble() - second.toDouble()).toString())
-                } else if (valueText.contains("+")){
-                    val values = valueText.split("+")
-                    var first = values[0]
-                    val second = values[1]
-                    if (prefix != ""){
-                        first = prefix + first
-                    }
-                    mainText?.text = removeZero((first.toDouble() + second.toDouble()).toString())
-                } else if (valueText.contains("*")){
-                    val values = valueText.split("*")
-                    var first = values[0]
-                    val second = values[1]
-                    if (prefix != ""){
-                        first = prefix + first
-                    }
-                    mainText?.text = removeZero((first.toDouble() * second.toDouble()).toString())
-                } else if (valueText.contains("/")){
-                    val values = valueText.split("/")
-                    var first = values[0]
-                    val second = values[1]
-                    if (prefix != ""){
-                        first = prefix + first
-                    }
-                    mainText?.text = removeZero((first.toDouble() / second.toDouble()).toString())
-                }
+                when {
+                    tvValue.contains("/") -> {
+                        val splitedValue = tvValue.split("/")
 
-            } catch (e: ArithmeticException){
+                        var one = splitedValue[0]
+                        val two = splitedValue[1]
+
+                        if (prefix.isNotEmpty()) {
+                            one = prefix + one
+                        }
+                        tvInput?.text = removeZeroAfterDot((one.toDouble() / two.toDouble()).toString())
+                    }
+                    tvValue.contains("*") -> {
+
+                        val splitedValue = tvValue.split("*")
+
+                        var one = splitedValue[0] // Value One
+                        val two = splitedValue[1] // Value Two
+
+                        if (prefix.isNotEmpty()) { // If the prefix is not empty then we will append it with first value i.e one.
+                            one = prefix + one
+                        }
+
+                        tvInput?.text = removeZeroAfterDot((one.toDouble() * two.toDouble()).toString())
+                    }
+                    tvValue.contains("-") -> {
+
+                        // If the inputValue contains the Subtraction operator
+                        // Will split the inputValue using Subtraction operator
+                        val splitedValue = tvValue.split("-")
+
+                        var one = splitedValue[0] // Value One
+                        val two = splitedValue[1] // Value Two
+
+                        if (prefix.isNotEmpty()) { // If the prefix is not empty then we will append it with first value i.e one.
+                            one = prefix + one
+                        }
+
+                        tvInput?.text = removeZeroAfterDot((one.toDouble() - two.toDouble()).toString())
+                    }
+                    tvValue.contains("+") -> {
+
+                        val splitedValue = tvValue.split("+")
+
+                        var one = splitedValue[0]
+                        val two = splitedValue[1]
+
+                        if (prefix.isNotEmpty()) {
+                            one = prefix + one
+                        }
+
+                        tvInput?.text = removeZeroAfterDot((one.toDouble() + two.toDouble()).toString())
+                    }
+                }
+            } catch (e: ArithmeticException) {
                 e.printStackTrace()
             }
-
         }
     }
-    fun removeZero(value: String) : String{
-        var result = value
-        if (result.contains(".0"))
-            result = result.substring(0,result.length-2)
-        return result
+
+    private fun removeZeroAfterDot(result: String): String {
+
+        var value = result
+
+        if (result.contains(".0")) {
+            value = result.substring(0, result.length - 2)
+        }
+
+        return value
+    }
+
+    private fun isOperatorAdded(value: String): Boolean {
+        return if (value.startsWith("-")) {
+            false
+        } else {
+            (value.contains("/")
+                    || value.contains("*")
+                    || value.contains("-")
+                    || value.contains("+"))
+        }
     }
 }
